@@ -120,7 +120,7 @@ command.install() {
       WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n openshift-pipelines -o template --template="{{.spec.host}}")
   fi
 
-  sed "s/@HOSTNAME/$GITEA_HOSTNAME/g" config/gitea-configmap.yaml | oc create -f - -n $cicd_prj
+  sed "s/@HOSTNAME/$GITEA_HOSTNAME/g" config/gitea-configmap.yaml | oc apply -f - -n $cicd_prj
   oc rollout status deployment/gitea -n $cicd_prj
   sed "s#@webhook-url@#https://$WEBHOOK_URL#g" config/gitea-init-taskrun.yaml | sed "s#@gitea-url@#https://$GITEA_HOSTNAME#g" |  oc create -f - -n $cicd_prj
 
@@ -136,7 +136,7 @@ command.install() {
   echo "Waiting for source code to be imported to Gitea..."
   while true; 
   do
-    result=$(curl --write-out '%{response_code}' --head --silent --output /dev/null https://$GITEA_HOSTNAME/gitea/spring-petclinic)
+    result=$(curl -k --write-out '%{response_code}' --head --silent --output /dev/null https://$GITEA_HOSTNAME/gitea/spring-petclinic)
     if [ "$result" == "200" ]; then
 	    break
     fi
@@ -148,7 +148,7 @@ command.install() {
   info "Updating pipelinerun values for the demo environment"
   tmp_dir=$(mktemp -d)
   pushd $tmp_dir
-  git clone https://$GITEA_HOSTNAME/gitea/spring-petclinic 
+  git clone -c http.sslVerify=false https://$GITEA_HOSTNAME/gitea/spring-petclinic 
   cd spring-petclinic 
   git config user.email "openshift-pipelines@redhat.com"
   git config user.name "openshift-pipelines"
@@ -184,6 +184,8 @@ spec:
     webhook_secret:
       name: "gitea"
       key: "webhook"
+  settings:
+    tls_verify: false
 ---
 apiVersion: v1
 kind: Secret
@@ -232,9 +234,9 @@ EOF
     wait_seconds 5
   done
 
-  info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
-  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
-  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
+  #info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
+  #oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
+  #oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
 
   oc project $cicd_prj
 
