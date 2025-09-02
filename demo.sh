@@ -106,9 +106,7 @@ command.install() {
 
   info "Configure service account permissions for pipeline"
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $dev_prj
-  oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:argocd-application-controller -n $dev_prj
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $stage_prj
-  oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:argocd-application-controller -n $stage_prj
   oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:default -n $cicd_prj
   oc policy add-role-to-user system:image-puller system:serviceaccount:$stage_prj:default -n $cicd_prj
 
