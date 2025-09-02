@@ -184,8 +184,6 @@ spec:
     webhook_secret:
       name: "gitea"
       key: "webhook"
-  settings:
-    tls_verify: false
 ---
 apiVersion: v1
 kind: Secret
@@ -204,6 +202,19 @@ EOF
   info "Configure Argo CD"
 
   cat << EOF > argo/tmp-argocd-app-patch.yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitea-repo-insecure-tls
+  namespace: $dev_prj
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: git
+  url: https://$GITEA_HOSTNAME/gitea/spring-petclinic-config
+  insecure: "true"
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -225,6 +236,9 @@ spec:
   source:
     repoURL: https://$GITEA_HOSTNAME/gitea/spring-petclinic-config
 EOF
+  sed -i "s/#cicd_prj/$cicd_prj/" argo/argocd-app-dev.yaml
+  sed -i "s/#cicd_prj/$cicd_prj/" argo/argocd-app-stage.yaml
+  
   oc apply -k argo -n $cicd_prj
 
   info "Wait for Argo CD route..."
