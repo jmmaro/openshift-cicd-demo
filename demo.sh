@@ -106,7 +106,9 @@ command.install() {
 
   info "Configure service account permissions for pipeline"
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $dev_prj
+  oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:argocd-application-controller -n $dev_prj
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $stage_prj
+  oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:argocd-application-controller -n $stage_prj
   oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:default -n $cicd_prj
   oc policy add-role-to-user system:image-puller system:serviceaccount:$stage_prj:default -n $cicd_prj
 
@@ -194,6 +196,19 @@ type: Opaque
 stringData:
   token: "$GITEA_TOKEN"
   webhook: ""
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitea-repo-insecure-tls
+  namespace: $cicd_prj
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: git
+  url: https://$GITEA_HOSTNAME/gitea/spring-petclinic-config
+  insecure: "true"
 EOF
   oc apply -f /tmp/tmp-pac-repository.yaml -n $cicd_prj 
 
@@ -202,19 +217,6 @@ EOF
   info "Configure Argo CD"
 
   cat << EOF > argo/tmp-argocd-app-patch.yaml
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gitea-repo-insecure-tls
-  namespace: $dev_prj
-  labels:
-    argocd.argoproj.io/secret-type: repository
-type: Opaque
-stringData:
-  type: git
-  url: https://$GITEA_HOSTNAME/gitea/spring-petclinic-config
-  insecure: "true"
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -248,9 +250,9 @@ EOF
     wait_seconds 5
   done
 
-  #info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
-  #oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
-  #oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
+  info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
+  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
+  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
 
   oc project $cicd_prj
 
