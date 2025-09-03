@@ -148,8 +148,8 @@ command.install() {
   info "Updating pipelinerun values for the demo environment"
   tmp_dir=$(mktemp -d)
   pushd $tmp_dir
-  git clone -c http.sslVerify=false https://$GITEA_HOSTNAME/gitea/spring-petclinic 
-  cd spring-petclinic 
+  git clone -c http.sslVerify=false https://$GITEA_HOSTNAME/gitea/spring-petclinic
+  cd spring-petclinic
   git config user.email "openshift-pipelines@redhat.com"
   git config user.name "openshift-pipelines"
   cat .tekton/build.yaml | grep -A 2 GIT_REPOSITORY
@@ -236,9 +236,6 @@ spec:
   source:
     repoURL: https://$GITEA_HOSTNAME/gitea/spring-petclinic-config
 EOF
-  sed -i "s/#cicd_prj/$cicd_prj/" argo/argocd-app-dev.yaml
-  sed -i "s/#cicd_prj/$cicd_prj/" argo/argocd-app-stage.yaml
-  
   oc apply -k argo -n $cicd_prj
 
   info "Wait for Argo CD route..."
@@ -290,8 +287,8 @@ command.start() {
   info "Pushing a change to https://$GITEA_HOSTNAME/gitea/spring-petclinic-config"
   tmp_dir=$(mktemp -d)
   pushd $tmp_dir
-  git clone https://$GITEA_HOSTNAME/gitea/spring-petclinic 
-  cd spring-petclinic 
+  git clone https://$GITEA_HOSTNAME/gitea/spring-petclinic
+  cd spring-petclinic
   git config user.email "openshift-pipelines@redhat.com"
   git config user.name "openshift-pipelines"
   echo "   " >> readme.md
